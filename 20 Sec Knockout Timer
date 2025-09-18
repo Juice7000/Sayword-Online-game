@@ -1,53 +1,116 @@
-// GameWithKnockoutTimer.tsx
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>20s Knockout Timer</title>
+  <style>
+    .circle-timer {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      margin: 20px auto;
+    }
 
-import React, { useState } from 'react';
-import KnockoutTimer from './KnockoutTimer';
-import TimerRound from './TimerRound';
+    svg {
+      transform: rotate(-90deg);
+      width: 120px;
+      height: 120px;
+    }
 
-const GameWithKnockoutTimer: React.FC = () => {
-  const [resetCounter, setResetCounter] = useState(0);
+    circle {
+      fill: none;
+      stroke-width: 8;
+      r: 45;
+      cx: 50;
+      cy: 50;
+    }
 
-  const handleWordSubmit = () => {
-    // Player entered a valid word → reset 20s timer
-    setResetCounter(prev => prev + 1);
-  };
+    .bg {
+      stroke: #ffcc00; /* yellow from SayWord logo */
+      opacity: 0.2;
+    }
 
-  const handleKnockoutExpire = () => {
-    console.log('❌ Player knocked out (20s expired)');
-    // Handle elimination here
-  };
+    .progress {
+      stroke: #ffcc00;
+      stroke-dasharray: 283; /* circumference for r=45 */
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 1s linear;
+    }
 
-  const handleRoundExpire = () => {
-    console.log('⏰ Round over (5 minutes)');
-    // Handle end of round
-  };
+    .time-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      color: #333;
+      font-weight: bold;
+    }
 
-  return (
-    <div>
-      <h2>SAYWORD! Knockout Mode</h2>
-      {/* 5-minute round timer */}
-      <TimerRound durationSeconds={300} onExpire={handleRoundExpire} />
+    #wordInput {
+      display: block;
+      margin: 20px auto;
+      padding: 10px;
+      font-size: 16px;
+      width: 200px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
 
-      {/* 20-second knockout timer */}
-      <KnockoutTimer
-        durationSeconds={20}
-        triggerReset={resetCounter}
-        onExpire={handleKnockoutExpire}
-      />
+  <div class="circle-timer">
+    <svg>
+      <circle class="bg" cx="50" cy="50" r="45"></circle>
+      <circle class="progress" cx="50" cy="50" r="45"></circle>
+    </svg>
+    <div class="time-text" id="time">20</div>
+  </div>
 
-      {/* Word input box */}
-      <input
-        type="text"
-        placeholder="Enter your word..."
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            handleWordSubmit();
-            e.currentTarget.value = '';
-          }
-        }}
-      />
-    </div>
-  );
-};
+  <input type="text" id="wordInput" placeholder="Type word here and press Enter">
 
-export default GameWithKnockoutTimer;
+  <script>
+    let duration = 20; // 20 seconds
+    let timeLeft = duration;
+    let interval;
+    const timeText = document.getElementById("time");
+    const progressCircle = document.querySelector(".progress");
+    const circumference = 2 * Math.PI * 45; // circle circumference
+
+    function startTimer() {
+      clearInterval(interval); // clear any existing countdown
+      timeLeft = duration;
+      updateDisplay();
+
+      interval = setInterval(() => {
+        timeLeft--;
+        updateDisplay();
+
+        if (timeLeft <= 0) {
+          clearInterval(interval);
+          alert("Knockout! Time’s up!");
+        }
+      }, 1000);
+    }
+
+    function updateDisplay() {
+      timeText.textContent = timeLeft;
+      const offset = circumference - (timeLeft / duration) * circumference;
+      progressCircle.style.strokeDashoffset = offset;
+    }
+
+    // Reset timer when player presses Enter with a word
+    document.getElementById("wordInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && e.target.value.trim() !== "") {
+        e.target.value = ""; // clear input
+        startTimer(); // RESET TIMER
+      }
+    });
+
+    // Start the first countdown
+    startTimer();
+  </script>
+
+</body>
+</html>
