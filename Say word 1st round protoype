@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SayWord Knockout</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    /* -------- ROUND TIMER (5 MINUTES) -------- */
+    #roundTimerWrapper {
+      width: 80%;
+      margin: 20px auto;
+      background: #eee;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+      height: 40px;
+    }
+
+    #roundProgress {
+      background: #ffcc00; /* SayWord yellow */
+      height: 100%;
+      width: 100%;
+      transition: width 1s linear;
+    }
+
+    #roundTimeLabel {
+      position: absolute;
+      width: 100%;
+      top: 0;
+      left: 0;
+      height: 100%;
+      line-height: 40px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    /* -------- 20-SECOND CIRCULAR TIMER -------- */
+    .circle-timer {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      margin: 20px auto;
+    }
+
+    svg {
+      transform: rotate(-90deg);
+      width: 120px;
+      height: 120px;
+    }
+
+    circle {
+      fill: none;
+      stroke-width: 8;
+      r: 45;
+      cx: 50;
+      cy: 50;
+    }
+
+    .bg {
+      stroke: #ffcc00;
+      opacity: 0.2;
+    }
+
+    .progress {
+      stroke: #ffcc00;
+      stroke-dasharray: 283; /* circumference for r=45 */
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 1s linear;
+    }
+
+    .time-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      color: #333;
+      font-weight: bold;
+    }
+
+    /* -------- INPUT + GAME STATUS -------- */
+    #wordInput {
+      display: block;
+      margin: 20px auto;
+      padding: 10px;
+      font-size: 16px;
+      width: 250px;
+      text-align: center;
+    }
+
+    #gameStatus {
+      font-size: 18px;
+      margin-top: 10px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>SayWord: Knockout</h1>
+
+  <!-- 5-minute round timer -->
+  <div id="roundTimerWrapper">
+    <div id="roundProgress"></div>
+    <div id="roundTimeLabel">05:00</div>
+  </div>
+
+  <!-- 20-second knockout circular timer -->
+  <div class="circle-timer">
+    <svg>
+      <circle class="bg" cx="50" cy="50" r="45"></circle>
+      <circle class="progress" cx="50" cy="50" r="45"></circle>
+    </svg>
+    <div class="time-text" id="knockoutTime">20</div>
+  </div>
+
+  <!-- Word input -->
+  <input type="text" id="wordInput" placeholder="Type word here and press Enter">
+  <div id="gameStatus">Words: 0 | Mistakes: 0/3</div>
+
+  <script>
+    /* ---------------------------
+       GAME STATE VARIABLES
+    ---------------------------- */
+    let wordsSubmitted = 0;
+    let mistakes = 0;
+    const statusDisplay = document.getElementById("gameStatus");
+
+    function updateStatus() {
+      statusDisplay.textContent = `Words: ${wordsSubmitted} | Mistakes: ${mistakes}/3`;
+    }
+
+    function endGame(message) {
+      alert(message);
+      location.reload(); // reload page to reset
+    }
+
+    /* ---------------------------
+       5-MINUTE ROUND TIMER
+    ---------------------------- */
+    let roundDuration = 5 * 60; // 5 minutes in seconds
+    let roundTimeLeft = roundDuration;
+    const roundProgress = document.getElementById("roundProgress");
+    const roundTimeLabel = document.getElementById("roundTimeLabel");
+
+    function startRoundTimer() {
+      const roundInterval = setInterval(() => {
+        roundTimeLeft--;
+
+        let minutes = Math.floor(roundTimeLeft / 60);
+        let seconds = roundTimeLeft % 60;
+        roundTimeLabel.textContent =
+          `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+
+        // shrink progress bar
+        let percent = (roundTimeLeft / roundDuration) * 100;
+        roundProgress.style.width = percent + "%";
+
+        if (roundTimeLeft <= 0) {
+          clearInterval(roundInterval);
+          endGame("⏰ Time’s up! You lose the round.");
+        }
+      }, 1000);
+    }
+
+    /* ---------------------------
+       20-SECOND KNOCKOUT TIMER
+    ---------------------------- */
+    let knockoutDuration = 20;
+    let knockoutTimeLeft = knockoutDuration;
+    let knockoutInterval;
+    const knockoutText = document.getElementById("knockoutTime");
+    const progressCircle = document.querySelector(".progress");
+    const circumference = 2 * Math.PI * 45;
+
+    function startKnockoutTimer() {
+      clearInterval(knockoutInterval);
+      knockoutTimeLeft = knockoutDuration;
+      updateKnockoutDisplay();
+
+      knockoutInterval = setInterval(() => {
+        knockoutTimeLeft--;
+        updateKnockoutDisplay();
+
+        if (knockoutTimeLeft <= 0) {
+          clearInterval(knockoutInterval);
+          mistakes++;
+          updateStatus();
+          if (mistakes >= 3) {
+            endGame("❌ 3 strikes! You lose the round.");
+          } else {
+            startKnockoutTimer(); // restart timer after penalty
+          }
+        }
+      }, 1000);
+    }
+
+    function updateKnockoutDisplay() {
+      knockoutText.textContent = knockoutTimeLeft;
+      const offset = circumference - (knockoutTimeLeft / knockoutDuration) * circumference;
+      progressCircle.style.strokeDashoffset = offset;
+    }
+
+    /* ---------------------------
+       WORD INPUT HANDLING
+    ---------------------------- */
+    document.getElementById("wordInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const word = e.target.value.trim().toLowerCase();
+        e.target.value = "";
+
+        // validate word (simple rule: at least 3 letters)
+        if (word.length >= 3) {
+          wordsSubmitted++;
+          updateStatus();
+
+          if (wordsSubmitted >= 20) {
+            endGame("🏆 Congratulations! You won the round.");
+          }
+
+          startKnockoutTimer(); // reset timer for valid entry
+        } else {
+          mistakes++;
+          updateStatus();
+          if (mistakes >= 3) {
+            endGame("❌ 3 strikes! You lose the round.");
+          }
+        }
+      }
+    });
+
+    /* ---------------------------
+       START GAME
+    ---------------------------- */
+    updateStatus();
+    startRoundTimer();    // round countdown
+    startKnockoutTimer(); // first word countdown
+  </script>
+
+</body>
+</html>
