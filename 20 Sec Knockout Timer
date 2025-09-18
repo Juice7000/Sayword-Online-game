@@ -1,0 +1,53 @@
+// GameWithKnockoutTimer.tsx
+
+import React, { useState } from 'react';
+import KnockoutTimer from './KnockoutTimer';
+import TimerRound from './TimerRound';
+
+const GameWithKnockoutTimer: React.FC = () => {
+  const [resetCounter, setResetCounter] = useState(0);
+
+  const handleWordSubmit = () => {
+    // Player entered a valid word → reset 20s timer
+    setResetCounter(prev => prev + 1);
+  };
+
+  const handleKnockoutExpire = () => {
+    console.log('❌ Player knocked out (20s expired)');
+    // Handle elimination here
+  };
+
+  const handleRoundExpire = () => {
+    console.log('⏰ Round over (5 minutes)');
+    // Handle end of round
+  };
+
+  return (
+    <div>
+      <h2>SAYWORD! Knockout Mode</h2>
+      {/* 5-minute round timer */}
+      <TimerRound durationSeconds={300} onExpire={handleRoundExpire} />
+
+      {/* 20-second knockout timer */}
+      <KnockoutTimer
+        durationSeconds={20}
+        triggerReset={resetCounter}
+        onExpire={handleKnockoutExpire}
+      />
+
+      {/* Word input box */}
+      <input
+        type="text"
+        placeholder="Enter your word..."
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            handleWordSubmit();
+            e.currentTarget.value = '';
+          }
+        }}
+      />
+    </div>
+  );
+};
+
+export default GameWithKnockoutTimer;
