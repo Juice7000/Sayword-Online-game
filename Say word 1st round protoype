@@ -14,4 +14,256 @@
     }
 
     h1 {
-      color: #
+      color: #ff6600; /* orange */
+    }
+
+    #scoreboard {
+      font-size: 1.5rem;
+      margin: 15px 0;
+      color: #fff;
+    }
+
+    /* Round Timer (5 minutes) */
+    #round-timer-container {
+      margin: 20px auto;
+      width: 80%;
+      background-color: #ffffff22;
+      border-radius: 20px;
+      overflow: hidden;
+      height: 30px;
+      position: relative;
+    }
+    #round-progress {
+      background-color: #ff6600;
+      height: 100%;
+      width: 100%;
+      transition: width 1s linear;
+    }
+    #round-timer-text {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+
+    /* Word Timer (20s circular) */
+    #word-timer {
+      margin: 20px auto;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 8px solid #ff6600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      background: #0a1f44;
+    }
+
+    /* Morpheme Card */
+    #morpheme-card {
+      margin: 20px auto;
+      width: 180px;
+      height: 250px;
+      border: 2px solid white;
+      border-radius: 10px;
+      background: white;
+      color: #0a1f44;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.5rem;
+      box-shadow: 2px 2px 10px #000;
+    }
+    #morpheme-card .points {
+      font-size: 1rem;
+      color: #ff6600;
+      margin-top: 10px;
+    }
+
+    /* Input & Messages */
+    input {
+      padding: 10px;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: none;
+      margin: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      background-color: #ff6600;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #message {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>SayWord Knockout</h1>
+  <div id="scoreboard">Score: 0</div>
+
+  <!-- Round Timer -->
+  <div id="round-timer-container">
+    <div id="round-progress"></div>
+    <div id="round-timer-text">05:00</div>
+  </div>
+
+  <!-- Word Timer -->
+  <div id="word-timer">20</div>
+
+  <!-- Morpheme Card -->
+  <div id="morpheme-card">
+    <div id="morpheme-text">?</div>
+    <div class="points" id="morpheme-points"></div>
+  </div>
+
+  <!-- Input -->
+  <input type="text" id="word-input" placeholder="Enter your word" />
+  <button onclick="submitWord()">Submit</button>
+  <div id="message"></div>
+
+  <script>
+    // Morpheme list with grade levels
+    const morphemes = [
+      { morpheme: "bio", grade: 7 },
+      { morpheme: "geo", grade: 7 },
+      { morpheme: "port", grade: 7 },
+      { morpheme: "scrib", grade: 7 },
+      { morpheme: "tele", grade: 7 },
+      { morpheme: "struct", grade: 8 },
+      { morpheme: "ject", grade: 8 },
+      { morpheme: "chrono", grade: 8 },
+      { morpheme: "philo", grade: 8 },
+      { morpheme: "spect", grade: 8 }
+      // Expand with full 80 morphemes later
+    ];
+    let usedMorphemes = [];
+    let usedWords = new Set();
+
+    let score = 0;
+    let wordTimer, roundTimer;
+    let roundTime = 300; // 5 min = 300s
+    let wordTime = 20;
+    let strikes = 0;
+    let wordsSubmitted = 0;
+
+    const roundProgress = document.getElementById("round-progress");
+    const roundTimerText = document.getElementById("round-timer-text");
+    const wordTimerEl = document.getElementById("word-timer");
+    const morphemeText = document.getElementById("morpheme-text");
+    const morphemePoints = document.getElementById("morpheme-points");
+    const message = document.getElementById("message");
+    const scoreboard = document.getElementById("scoreboard");
+
+    let currentMorpheme = null;
+
+    function startGame() {
+      startRoundTimer();
+      nextMorpheme();
+      startWordTimer();
+    }
+
+    // Round Timer
+    function startRoundTimer() {
+      roundTimer = setInterval(() => {
+        roundTime--;
+        updateRoundTimer();
+        if (roundTime <= 0) endGame("Time’s up! You lose.");
+      }, 1000);
+    }
+    function updateRoundTimer() {
+      let minutes = Math.floor(roundTime / 60).toString().padStart(2, "0");
+      let seconds = (roundTime % 60).toString().padStart(2, "0");
+      roundTimerText.textContent = `${minutes}:${seconds}`;
+      roundProgress.style.width = `${(roundTime / 300) * 100}%`;
+    }
+
+    // Word Timer
+    function startWordTimer() {
+      wordTime = 20;
+      updateWordTimer();
+      clearInterval(wordTimer);
+      wordTimer = setInterval(() => {
+        wordTime--;
+        updateWordTimer();
+        if (wordTime <= 0) {
+          strikes++;
+          if (strikes >= 3) endGame("3 invalid attempts! You lose.");
+          else {
+            message.textContent = "⏰ Time ran out! Strike added.";
+            nextMorpheme();
+          }
+        }
+      }, 1000);
+    }
+    function updateWordTimer() {
+      wordTimerEl.textContent = wordTime;
+    }
+
+    // Morphemes
+    function nextMorpheme() {
+      if (usedMorphemes.length === morphemes.length) {
+        endGame("No more morphemes left!");
+        return;
+      }
+      let available = morphemes.filter(m => !usedMorphemes.includes(m.morpheme));
+      currentMorpheme = available[Math.floor(Math.random() * available.length)];
+      usedMorphemes.push(currentMorpheme.morpheme);
+      morphemeText.textContent = currentMorpheme.morpheme;
+      morphemePoints.textContent = `Worth: ${currentMorpheme.grade === 7 ? 1 : 2} points`;
+      startWordTimer();
+    }
+
+    // Word Submission
+    function submitWord() {
+      const input = document.getElementById("word-input");
+      const word = input.value.trim().toLowerCase();
+      input.value = "";
+
+      if (!word) return;
+
+      if (usedWords.has(word)) {
+        strikes++;
+        message.textContent = `❌ Word already used! Strikes: ${strikes}`;
+      } else if (word.includes(currentMorpheme.morpheme)) {
+        usedWords.add(word);
+        wordsSubmitted++;
+        let points = currentMorpheme.grade === 7 ? 1 : 2;
+        score += points;
+        scoreboard.textContent = `Score: ${score}`;
+        message.textContent = `✅ Correct! +${points} points`;
+        if (wordsSubmitted >= 20) endGame("🎉 You win! 20 words submitted.");
+        else nextMorpheme();
+      } else {
+        strikes++;
+        message.textContent = `❌ Invalid word! Strikes: ${strikes}`;
+      }
+
+      if (strikes >= 3) endGame("3 invalid attempts! You lose.");
+    }
+
+    // End Game
+    function endGame(msg) {
+      clearInterval(roundTimer);
+      clearInterval(wordTimer);
+      message.textContent = msg + ` Final Score: ${score}`;
+    }
+
+    // Start automatically
+    startGame();
+  </script>
+</body>
+</html>
