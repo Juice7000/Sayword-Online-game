@@ -9,10 +9,10 @@
       background:#fff;
       text-align:center;
       padding:20px;
-      color:#333;
+      color:#001F3F; /* navy text */
     }
 
-    h1 { color:#008080; }
+    h1 { color:#001F3F; }
 
     /* Round timer progress bar */
     #round-timer {
@@ -27,7 +27,7 @@
     #round-progress {
       height: 100%;
       width: 100%;
-      background: #008080;
+      background: #FF851B; /* orange */
       color: white;
       text-align: center;
       line-height: 30px;
@@ -39,45 +39,57 @@
       width:120px;
       height:120px;
       border-radius:50%;
-      border:10px solid #008080;
+      border:10px solid #001F3F; /* navy border */
       margin: 20px auto;
       display:flex;
       align-items:center;
       justify-content:center;
       font-size:20px;
       font-weight:bold;
-      color:#008080;
+      color:#001F3F;
+      background:#fff;
     }
 
-    /* Morpheme card */
+    /* Morpheme card styled like playing card */
     #morpheme-card {
       font-size:28px;
       font-weight:bold;
-      margin:20px 0;
-      padding:10px 20px;
-      border:2px solid #008080;
+      margin:20px auto;
+      padding:40px 20px;
+      width:160px;
+      height:220px;
+      border:2px solid #001F3F; /* navy border */
       border-radius:10px;
-      display:inline-block;
-      color:#008080;
+      box-shadow: 4px 6px 10px rgba(0,0,0,0.3);
+      background:#fff;
+      color:#FF851B; /* orange text */
+      display:flex;
+      align-items:center;
+      justify-content:center;
     }
 
     input {
       padding:10px;
       font-size:16px;
       width:200px;
+      border:2px solid #001F3F;
+      border-radius:5px;
     }
     button {
       padding:10px 15px;
       margin-left:10px;
-      background:#008080;
+      background:#FF851B;
       color:white;
       border:none;
       cursor:pointer;
       font-size:16px;
       border-radius:5px;
     }
+    button:hover {
+      background:#e87414; /* darker orange hover */
+    }
 
-    #status { margin-top:15px; font-weight:bold; }
+    #status { margin-top:15px; font-weight:bold; min-height:24px; }
   </style>
 </head>
 <body>
@@ -110,6 +122,7 @@
     let roundTimer, turnTimer;
     let wordsSubmitted = 0;
     let strikes = 0;
+    let usedWords = new Set(); // to track duplicate word submissions
 
     // 80 morphemes list
     const morphemes = [
@@ -117,6 +130,7 @@
       "able","ible","al","ance","ence","er","or","ment","ness","ful","less","tion","sion","ous","ious","ic","ish","ive","ity","ty","ly","ship","ward","wards","ed","ing","est","y","en","dom","ant","ent","ology",
       "aqua","aud","bene","bio","chrono","cred","dict","geo","graph","gram","junct","man","manu","mater","matr","meter","metr","min","mit","miss","mort","phon","photo","port","rupt","scrib","script","spect","struct","tele","terra","therm","vid","vis","voc","voke","zo","zoo"
     ];
+    let availableMorphemes = [...morphemes]; // copy for round
     let currentMorpheme = "";
 
     // Start game
@@ -145,56 +159,12 @@
     }
 
     function nextTurn() {
-      // Pick morpheme
-      currentMorpheme = morphemes[Math.floor(Math.random() * morphemes.length)];
-      document.getElementById("morpheme-card").textContent = currentMorpheme;
-
-      // Reset 20 sec timer
-      turnTime = 20;
-      updateTurnTimer();
-      if (turnTimer) clearInterval(turnTimer);
-      turnTimer = setInterval(() => {
-        turnTime--;
-        updateTurnTimer();
-        if (turnTime <= 0) {
-          clearInterval(turnTimer);
-          addStrike("⏳ No word submitted in time!");
-        }
-      }, 1000);
-    }
-
-    function updateTurnTimer() {
-      document.getElementById("turn-timer").textContent = turnTime;
-    }
-
-    function submitWord() {
-      let word = document.getElementById("word-input").value.trim().toLowerCase();
-      document.getElementById("word-input").value = "";
-
-      if (word && word.includes(currentMorpheme)) {
-        wordsSubmitted++;
-        document.getElementById("score").textContent = wordsSubmitted;
-        document.getElementById("status").textContent = `✅ "${word}" accepted!`;
-        if (wordsSubmitted >= 20) endGame(true, "🏆 You win! 20 words submitted.");
-        else nextTurn();
-      } else {
-        addStrike(`❌ "${word}" is invalid! Must contain: ${currentMorpheme}`);
+      if (availableMorphemes.length === 0) {
+        endGame(true, "🏆 You win! All morpheme cards used.");
+        return;
       }
-    }
 
-    function addStrike(message) {
-      strikes++;
-      document.getElementById("strikes").textContent = strikes;
-      document.getElementById("status").textContent = message;
-      if (strikes >= 3) endGame(false, "❌ 3 strikes! You lose.");
-      else nextTurn();
-    }
-
-    function endGame(win, message) {
-      clearInterval(roundTimer);
-      clearInterval(turnTimer);
-      document.getElementById("status").textContent = message;
-    }
-  </script>
-</body>
-</html>
+      // Pick random morpheme without repeats
+      let index = Math.floor(Math.random() * availableMorphemes.length);
+      currentMorpheme = availableMorphemes.splice(index, 1)[0]; // remove it from pool
+      document.getElementById("morpheme-card").textContent = c
