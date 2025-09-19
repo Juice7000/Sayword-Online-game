@@ -17,6 +17,35 @@
       color: navy;
     }
 
+    #roundTimerContainer {
+      width: 80%;
+      height: 25px;
+      background-color: #eee;
+      margin: 20px auto;
+      border: 2px solid navy;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #roundTimerBar {
+      height: 100%;
+      width: 100%;
+      background-color: orange;
+      transition: width 1s linear;
+    }
+
+    #roundTimerText {
+      position: absolute;
+      width: 100%;
+      top: 0;
+      left: 0;
+      line-height: 25px;
+      font-size: 14px;
+      font-weight: bold;
+      color: navy;
+    }
+
     #game {
       margin-top: 20px;
     }
@@ -28,29 +57,32 @@
       margin: 10px;
       background-color: orange;
       color: navy;
-      border: 4px double navy;
+      border: 8px solid navy;   /* thicker navy border */
       border-radius: 12px;
       box-shadow: 2px 2px 6px rgba(0,0,0,0.3);
       position: relative;
-      font-size: 20px;
+      font-size: 24px;
       font-weight: bold;
       line-height: 180px;
     }
 
-    .point-oval {
+    .point-square {
       position: absolute;
-      bottom: 8px;
-      left: 8px;
-      background: white;
-      color: navy;
-      border: 2px solid navy;
-      border-radius: 50px;
-      padding: 2px 8px;
-      font-size: 12px;
+      bottom: 6px;
+      left: 6px;
+      width: 30px;
+      height: 30px;
+      background: navy;
+      color: white;
+      font-size: 10px;
       font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
     }
 
-    #timer {
+    #turnTimer {
       font-size: 24px;
       color: navy;
       margin: 15px 0;
@@ -94,72 +126,111 @@
 </head>
 <body>
   <h1>SayWord Knockout</h1>
-  <div id="timer">Time left: 20</div>
+
+  <!-- Round Timer (5 min with progress bar) -->
+  <div id="roundTimerContainer">
+    <div id="roundTimerBar"></div>
+    <div id="roundTimerText">5:00</div>
+  </div>
+
+  <!-- Turn Timer (20 sec) -->
+  <div id="turnTimer">Turn Time: 20</div>
   <div id="score">Score: 0</div>
   <div id="game"></div>
+
   <input id="wordInput" type="text" placeholder="Enter your word" />
   <button id="submitWord">Submit</button>
   <div id="message"></div>
 
   <script>
+    // Build morpheme list: 40 (7th grade = 1 pt), 40 (8th grade = 2 pts)
     const morphemes = [];
-
-    // Add 40 morphemes for 7th grade (1 point each)
-    const grade7Morphemes = [
-      "bio", "graph", "tele", "photo", "micro", "auto", "meter", "port",
-      "dict", "scrib", "sect", "vis", "vid", "phon", "geo", "aqua",
-      "struct", "form", "therm", "cycle", "cred", "rupt", "spect", "ject",
-      "manu", "chron", "astro", "bene", "mal", "ped", "mit", "cap",
-      "anti", "multi", "sub", "trans", "tri", "uni", "re", "pre"
+    const grade7 = [
+      "bio","graph","tele","photo","micro","auto","meter","port",
+      "dict","scrib","sect","vis","vid","phon","geo","aqua",
+      "struct","form","therm","cycle","cred","rupt","spect","ject",
+      "manu","chron","astro","bene","mal","ped","mit","cap",
+      "anti","multi","sub","trans","tri","uni","re","pre"
     ];
-    grade7Morphemes.forEach(m => morphemes.push({ text: m, points: 1 }));
+    grade7.forEach(m => morphemes.push({ text: m, points: 1 }));
 
-    // Add 40 morphemes for 8th grade (2 points each)
-    const grade8Morphemes = [
-      "inter", "intra", "poly", "circum", "hyper", "hypo", "semi", "syn",
-      "teleo", "neo", "omni", "post", "super", "ultra", "ambi", "contra",
-      "cide", "dorm", "homo", "hetero", "phobia", "phile", "logue", "path",
-      "morph", "chronos", "cracy", "dem", "gen", "ism", "ist", "logy",
-      "onym", "phil", "polis", "scope", "soph", "troph", "videre", "voc"
+    const grade8 = [
+      "inter","intra","poly","circum","hyper","hypo","semi","syn",
+      "teleo","neo","omni","post","super","ultra","ambi","contra",
+      "cide","dorm","homo","hetero","phobia","phile","logue","path",
+      "morph","chronos","cracy","dem","gen","ism","ist","logy",
+      "onym","phil","polis","scope","soph","troph","videre","voc"
     ];
-    grade8Morphemes.forEach(m => morphemes.push({ text: m, points: 2 }));
+    grade8.forEach(m => morphemes.push({ text: m, points: 2 }));
 
-    // Shuffle morphemes to avoid repeats
+    // Shuffle morphemes
     let availableMorphemes = [...morphemes];
     let usedWords = new Set();
     let score = 0;
-    let timeLeft = 20;
-    let timerInterval;
 
-    function startGame() {
-      displayCards();
-      timerInterval = setInterval(() => {
-        timeLeft--;
-        document.getElementById("timer").innerText = "Time left: " + timeLeft;
-        if (timeLeft <= 0) {
-          clearInterval(timerInterval);
-          document.getElementById("message").innerText = "Time's up! Final Score: " + score;
+    // Round timer: 5 min = 300s
+    let roundTimeLeft = 300;
+    const roundTimerBar = document.getElementById("roundTimerBar");
+    const roundTimerText = document.getElementById("roundTimerText");
+    setInterval(() => {
+      roundTimeLeft--;
+      const minutes = Math.floor(roundTimeLeft / 60);
+      const seconds = roundTimeLeft % 60;
+      roundTimerText.innerText = `${minutes}:${seconds.toString().padStart(2,"0")}`;
+      roundTimerBar.style.width = (roundTimeLeft / 300 * 100) + "%";
+      if (roundTimeLeft <= 0) {
+        document.getElementById("message").innerText = "You lose! Time expired.";
+      }
+    }, 1000);
+
+    // Turn timer: 20s
+    let turnTimeLeft = 20;
+    let turnInterval;
+    const turnTimerDiv = document.getElementById("turnTimer");
+
+    function startTurnTimer() {
+      clearInterval(turnInterval);
+      turnTimeLeft = 20;
+      turnTimerDiv.innerText = "Turn Time: 20";
+      turnInterval = setInterval(() => {
+        turnTimeLeft--;
+        turnTimerDiv.innerText = "Turn Time: " + turnTimeLeft;
+        if (turnTimeLeft <= 0) {
+          clearInterval(turnInterval);
+          document.getElementById("message").innerText = "Out of time! Next card.";
+          nextCard();
         }
       }, 1000);
     }
 
-    function displayCards() {
+    // Display one card
+    function displayCard(morpheme) {
       const gameDiv = document.getElementById("game");
       gameDiv.innerHTML = "";
-      const selected = availableMorphemes.slice(0, 5); // show 5 at a time
-      selected.forEach(morpheme => {
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerText = morpheme.text;
-        
-        const oval = document.createElement("div");
-        oval.className = "point-oval";
-        oval.innerText = morpheme.points === 1 ? "1 point" : "2 points";
-        card.appendChild(oval);
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerText = morpheme.text;
 
-        gameDiv.appendChild(card);
-      });
+      const square = document.createElement("div");
+      square.className = "point-square";
+      square.innerText = morpheme.points;
+      card.appendChild(square);
+
+      gameDiv.appendChild(card);
     }
+
+    function nextCard() {
+      if (availableMorphemes.length === 0) {
+        document.getElementById("message").innerText = "No more morphemes!";
+        return;
+      }
+      const morpheme = availableMorphemes.shift();
+      displayCard(morpheme);
+      startTurnTimer();
+      currentMorpheme = morpheme;
+    }
+
+    let currentMorpheme = null;
 
     function submitWord() {
       const wordInput = document.getElementById("wordInput");
@@ -177,20 +248,12 @@
         return;
       }
 
-      let valid = false;
-      let wordPoints = 0;
-      morphemes.forEach(m => {
-        if (word.includes(m.text)) {
-          valid = true;
-          wordPoints += m.points;
-        }
-      });
-
-      if (valid) {
+      if (word.includes(currentMorpheme.text)) {
         usedWords.add(word);
-        score += wordPoints;
+        score += currentMorpheme.points;
         document.getElementById("score").innerText = "Score: " + score;
-        message.innerText = "Good job! +" + wordPoints + " points.";
+        message.innerText = "Correct! +" + currentMorpheme.points + " point(s).";
+        nextCard();
       } else {
         message.innerText = "Invalid word!";
       }
@@ -200,7 +263,9 @@
 
     document.getElementById("submitWord").addEventListener("click", submitWord);
 
-    startGame();
+    // Start game with first card
+    nextCard();
   </script>
 </body>
 </html>
+
