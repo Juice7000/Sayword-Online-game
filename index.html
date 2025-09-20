@@ -1,107 +1,161 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>SayWord Knockout</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background-color: white;
-      color: navy;
-      text-align: center;
       margin: 0;
-      padding: 0;
+      padding: 20px;
       display: flex;
+      gap: 20px;
     }
 
-    /* Left column for counters */
-    .left-column {
-      width: 150px;
-      padding: 20px;
-      border-right: 2px solid navy;
-      text-align: left;
-      background: #f7f7f7;
+    /* Left column */
+    #sidebar {
+      width: 200px;
+      font-size: 16px;
     }
 
-    .main-content {
-      flex: 1;
-      padding: 20px;
-    }
-
-    h1 {
-      color: orange;
-      margin: 10px 0;
-    }
-
-    .round-timer {
-      font-size: 1.5rem;
-      margin: 5px;
-    }
-
-    .progress-bar {
+    /* Round progress bar */
+    #roundProgress {
       width: 100%;
-      background-color: #ddd;
       height: 20px;
-      margin: 10px 0;
-      border-radius: 5px;
+      background: #eee;
+      border-radius: 10px;
       overflow: hidden;
+      margin-bottom: 20px;
     }
-
-    .progress {
+    #roundProgressBar {
       height: 100%;
       width: 100%;
-      background-color: orange;
-      transition: width 1s linear;
+      background: orange;
     }
 
-    /* Circular timer */
-    .circle-timer {
-      position: relative;
+    /* Circle timer */
+    #circle-timer {
       width: 100px;
       height: 100px;
-      margin: 15px auto;
-    }
-
-    .circle-timer svg {
-      transform: rotate(-90deg);
-    }
-
-    .circle-timer circle {
-      fill: none;
-      stroke-width: 10;
-      stroke: #ddd;
-    }
-
-    .circle-timer .progress-circle {
-      stroke: navy;
-      stroke-linecap: round;
-      transition: stroke-dashoffset 1s linear;
-    }
-
-    .circle-timer .time-label {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 1.2rem;
+      border: 8px solid orange;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-weight: bold;
+      margin: 10px auto;
     }
 
-    .card {
+    /* Morpheme card */
+    #card {
+      border: 6px solid navy;
+      border-radius: 10px;
       width: 200px;
       height: 300px;
-      margin: 20px auto;
-      background: white;
-      border: 2px double navy;
-      border-radius: 10px;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
+      background: white;
       position: relative;
-      box-shadow: 2px 4px 6px rgba(0,0,0,0.2);
+    }
+    #point-box {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      width: 40px;
+      height: 20px;
+      background: orange;
+      color: white;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #meaning {
+      font-size: 12px;
+      font-style: italic;
+      margin-top: 10px;
     }
 
-    .morpheme {
-      font-size: 2rem;
+    /* Red Xs */
+    #strikes {
+      color: red;
+      font-size: 24px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <h3>Game Info</h3>
+    <div id="roundProgress"><div id="roundProgressBar"></div></div>
+    <p>Correct words: <span id="correctCount">0</span></p>
+    <p>Strikes: <span id="strikes"></span></p>
+    <button id="resetBtn">Reset Round</button>
+  </div>
+
+  <div id="main">
+    <div id="circle-timer">20</div>
+    <div id="card">
+      <div id="morpheme">Loading...</div>
+      <div id="meaning"></div>
+      <div id="point-box">0</div>
+    </div>
+    <input type="text" id="wordInput" placeholder="Enter word" />
+    <button id="submitBtn">Submit</button>
+  </div>
+
+  <script>
+    // Morpheme list (sample, should expand to full 80)
+    const morphemes = [
+      { morpheme: "bio", meaning: "life", grade: 7, points: 1 },
+      { morpheme: "chrono", meaning: "time", grade: 7, points: 1 },
+      { morpheme: "aud", meaning: "hear", grade: 7, points: 1 },
+      { morpheme: "ject", meaning: "throw", grade: 8, points: 2 },
+      { morpheme: "rupt", meaning: "break", grade: 8, points: 2 },
+    ];
+
+    let roundTime = 300; // 5 min
+    let turnTime = 20;
+    let roundInterval, turnInterval;
+    let correctCount = 0;
+    let strikes = 0;
+    let usedMorphemes = [];
+
+    const roundBar = document.getElementById("roundProgressBar");
+    const circleTimer = document.getElementById("circle-timer");
+    const morphemeEl = document.getElementById("morpheme");
+    const meaningEl = document.getElementById("meaning");
+    const pointBox = document.getElementById("point-box");
+    const correctEl = document.getElementById("correctCount");
+    const strikesEl = document.getElementById("strikes");
+    const resetBtn = document.getElementById("resetBtn");
+
+    function startGame() {
+      correctCount = 0;
+      strikes = 0;
+      usedMorphemes = [];
+      correctEl.textContent = 0;
+      strikesEl.textContent = "";
+
+      startRoundTimer();
+      newTurn();
+    }
+
+    function startRoundTimer() {
+      roundTime = 300;
+      roundInterval = setInterval(() => {
+        roundTime--;
+        const percent = (roundTime / 300) * 100;
+        roundBar.style.width = percent + "%";
+        if (roundTime <= 0) {
+          endGame("lose");
+        }
+      }, 1000);
+    }
+
+    function startTurnTimer() {
+      turnTime = 20;
+      circleTimer.textContent = turnTime;
