@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>SayWord Knockout</title>
+  <title>SayWord: Knockout</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -34,6 +34,20 @@
       background: orange;
     }
 
+    /* Center content */
+    #main {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    h1 {
+      color: navy;
+      margin-bottom: 20px;
+    }
+
     /* Circle timer */
     #circle-timer {
       width: 100px;
@@ -59,6 +73,7 @@
       align-items: center;
       background: white;
       position: relative;
+      margin: 15px 0;
     }
     #point-box {
       position: absolute;
@@ -73,6 +88,11 @@
       align-items: center;
       justify-content: center;
     }
+    #morpheme {
+      font-size: 28px;
+      font-weight: bold;
+      color: navy;
+    }
     #meaning {
       font-size: 12px;
       font-style: italic;
@@ -83,6 +103,12 @@
     #strikes {
       color: red;
       font-size: 24px;
+      margin-top: 10px;
+    }
+
+    /* Word input */
+    #wordInput {
+      padding: 8px;
       margin-top: 10px;
     }
   </style>
@@ -97,6 +123,7 @@
   </div>
 
   <div id="main">
+    <h1>SayWord: Knockout</h1>
     <div id="circle-timer">20</div>
     <div id="card">
       <div id="morpheme">Loading...</div>
@@ -108,54 +135,6 @@
   </div>
 
   <script>
-    // Morpheme list (sample, should expand to full 80)
+    // Morpheme list (expand to 80)
     const morphemes = [
-      { morpheme: "bio", meaning: "life", grade: 7, points: 1 },
-      { morpheme: "chrono", meaning: "time", grade: 7, points: 1 },
-      { morpheme: "aud", meaning: "hear", grade: 7, points: 1 },
-      { morpheme: "ject", meaning: "throw", grade: 8, points: 2 },
-      { morpheme: "rupt", meaning: "break", grade: 8, points: 2 },
-    ];
-
-    let roundTime = 300; // 5 min
-    let turnTime = 20;
-    let roundInterval, turnInterval;
-    let correctCount = 0;
-    let strikes = 0;
-    let usedMorphemes = [];
-
-    const roundBar = document.getElementById("roundProgressBar");
-    const circleTimer = document.getElementById("circle-timer");
-    const morphemeEl = document.getElementById("morpheme");
-    const meaningEl = document.getElementById("meaning");
-    const pointBox = document.getElementById("point-box");
-    const correctEl = document.getElementById("correctCount");
-    const strikesEl = document.getElementById("strikes");
-    const resetBtn = document.getElementById("resetBtn");
-
-    function startGame() {
-      correctCount = 0;
-      strikes = 0;
-      usedMorphemes = [];
-      correctEl.textContent = 0;
-      strikesEl.textContent = "";
-
-      startRoundTimer();
-      newTurn();
-    }
-
-    function startRoundTimer() {
-      roundTime = 300;
-      roundInterval = setInterval(() => {
-        roundTime--;
-        const percent = (roundTime / 300) * 100;
-        roundBar.style.width = percent + "%";
-        if (roundTime <= 0) {
-          endGame("lose");
-        }
-      }, 1000);
-    }
-
-    function startTurnTimer() {
-      turnTime = 20;
-      circleTimer.textContent = turnTime;
+      { morpheme: "bio", mea
