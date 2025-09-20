@@ -1,140 +1,169 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>SayWord: Knockout</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: white;
-      margin: 0;
-      padding: 20px;
-      display: flex;
-      gap: 20px;
-    }
+import React, { useState, useEffect } from "react";
 
-    /* Left column */
-    #sidebar {
-      width: 200px;
-      font-size: 16px;
-    }
+const morphemes = [
+  { morpheme: "bio", meaning: "life" },
+  { morpheme: "geo", meaning: "earth" },
+  { morpheme: "aqua", meaning: "water" },
+  { morpheme: "tele", meaning: "far" },
+  { morpheme: "micro", meaning: "small" },
+  { morpheme: "chrono", meaning: "time" },
+  // … extend to 80 total
+];
 
-    /* Round progress bar */
-    #roundProgress {
-      width: 100%;
-      height: 20px;
-      background: #eee;
-      border-radius: 10px;
-      overflow: hidden;
-      margin-bottom: 20px;
-    }
-    #roundProgressBar {
-      height: 100%;
-      width: 100%;
-      background: orange;
-    }
+export default function App() {
+  const [currentMorpheme, setCurrentMorpheme] = useState(null);
+  const [submittedWord, setSubmittedWord] = useState("");
+  const [correctCount, setCorrectCount] = useState(0);
+  const [strikes, setStrikes] = useState(0);
+  const [roundTime, setRoundTime] = useState(300); // 5 minutes
+  const [circleTime, setCircleTime] = useState(30);
+  const [gameOver, setGameOver] = useState(false);
 
-    /* Center content */
-    #main {
-      flex-grow: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-    }
+  // pick a morpheme at start and when needed
+  useEffect(() => {
+    getRandomMorpheme();
+  }, []);
 
-    h1 {
-      color: navy;
-      margin-bottom: 20px;
-    }
+  // round timer (5 min)
+  useEffect(() => {
+    if (gameOver) return;
+    const roundTimer = setInterval(() => {
+      setRoundTime((prev) => {
+        if (prev <= 1) {
+          setGameOver(true);
+          clearInterval(roundTimer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(roundTimer);
+  }, [gameOver]);
 
-    /* Circle timer */
-    #circle-timer {
-      width: 100px;
-      height: 100px;
-      border: 8px solid orange;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      margin: 10px auto;
-    }
+  // circle timer (30 sec per word)
+  useEffect(() => {
+    if (gameOver) return;
+    const circleTimer = setInterval(() => {
+      setCircleTime((prev) => {
+        if (prev <= 1) {
+          setStrikes((s) => s + 1);
+          setCircleTime(30);
+          getRandomMorpheme();
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(circleTimer);
+  }, [gameOver]);
 
-    /* Morpheme card */
-    #card {
-      border: 6px solid navy;
-      border-radius: 10px;
-      width: 200px;
-      height: 300px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      background: white;
-      position: relative;
-      margin: 15px 0;
-    }
-    #point-box {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      width: 40px;
-      height: 20px;
-      background: orange;
-      color: white;
-      font-size: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    #morpheme {
-      font-size: 28px;
-      font-weight: bold;
-      color: navy;
-    }
-    #meaning {
-      font-size: 12px;
-      font-style: italic;
-      margin-top: 10px;
-    }
+  const getRandomMorpheme = () => {
+    const random = morphemes[Math.floor(Math.random() * morphemes.length)];
+    setCurrentMorpheme(random);
+  };
 
-    /* Red Xs */
-    #strikes {
-      color: red;
-      font-size: 24px;
-      margin-top: 10px;
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (gameOver) return;
+    if (submittedWord.toLowerCase().includes(currentMorpheme.morpheme)) {
+      setCorrectCount((c) => {
+        if (c + 1 === 20) {
+          setGameOver(true);
+        }
+        return c + 1;
+      });
+      getRandomMorpheme();
+      setCircleTime(30);
+    } else {
+      setStrikes((s) => {
+        if (s + 1 >= 3) {
+          setGameOver(true);
+        }
+        return s + 1;
+      });
     }
+    setSubmittedWord("");
+  };
 
-    /* Word input */
-    #wordInput {
-      padding: 8px;
-      margin-top: 10px;
-    }
-  </style>
-</head>
-<body>
-  <div id="sidebar">
-    <h3>Game Info</h3>
-    <div id="roundProgress"><div id="roundProgressBar"></div></div>
-    <p>Correct words: <span id="correctCount">0</span></p>
-    <p>Strikes: <span id="strikes"></span></p>
-    <button id="resetBtn">Reset Round</button>
-  </div>
+  const resetGame = () => {
+    setCorrectCount(0);
+    setStrikes(0);
+    setRoundTime(300);
+    setCircleTime(30);
+    setGameOver(false);
+    getRandomMorpheme();
+  };
 
-  <div id="main">
-    <h1>SayWord: Knockout</h1>
-    <div id="circle-timer">20</div>
-    <div id="card">
-      <div id="morpheme">Loading...</div>
-      <div id="meaning"></div>
-      <div id="point-box">0</div>
+  return (
+    <div className="flex min-h-screen bg-gray-100 text-center">
+      {/* Left column */}
+      <div className="w-1/4 bg-white p-4 shadow-md">
+        <h2 className="text-lg font-semibold">Progress</h2>
+        <p className="mt-2">✅ Words: {correctCount}</p>
+        <p className="mt-2">
+          ❌ Strikes: {"X".repeat(strikes)}
+        </p>
+      </div>
+
+      {/* Center column */}
+      <div className="flex-1 flex flex-col items-center justify-center">
+        <h1 className="text-3xl font-bold mb-6">SayWord: Knockout</h1>
+
+        {/* Card */}
+        {currentMorpheme && (
+          <div className="bg-white rounded-2xl shadow-lg border-4 border-navy-700 w-64 h-96 flex flex-col items-center justify-center relative">
+            <div className="absolute bottom-2 left-2 w-6 h-6 bg-gray-200 text-xs flex items-center justify-center">
+              {currentMorpheme.morpheme.length}
+            </div>
+            <p className="text-3xl font-bold">{currentMorpheme.morpheme}</p>
+            <p className="italic text-sm mt-2">
+              {currentMorpheme.meaning}
+            </p>
+          </div>
+        )}
+
+        {/* Circle timer */}
+        <div className="mt-6 w-20 h-20 rounded-full border-4 border-gray-400 flex items-center justify-center text-xl font-bold">
+          {circleTime}
+        </div>
+
+        {/* Round progress bar */}
+        <div className="w-3/4 bg-gray-300 rounded-full h-4 mt-6">
+          <div
+            className="bg-orange-500 h-4 rounded-full"
+            style={{ width: `${(roundTime / 300) * 100}%` }}
+          />
+        </div>
+
+        {/* Word submission */}
+        <form onSubmit={handleSubmit} className="mt-6">
+          <input
+            type="text"
+            className="border p-2 rounded"
+            placeholder="Enter a word"
+            value={submittedWord}
+            onChange={(e) => setSubmittedWord(e.target.value)}
+            disabled={gameOver}
+          />
+          <button
+            type="submit"
+            className="ml-2 bg-blue-600 text-white px-4 py-2 rounded"
+            disabled={gameOver}
+          >
+            Submit
+          </button>
+        </form>
+
+        {/* Reset button */}
+        {gameOver && (
+          <button
+            onClick={resetGame}
+            className="mt-4 bg-green-600 text-white px-4 py-2 rounded"
+          >
+            Restart
+          </button>
+        )}
+      </div>
     </div>
-    <input type="text" id="wordInput" placeholder="Enter word" />
-    <button id="submitBtn">Submit</button>
-  </div>
-
-  <script>
-    // Morpheme list (expand to 80)
-    const morphemes = [
-      { morpheme: "bio", mea
+  );
+}
