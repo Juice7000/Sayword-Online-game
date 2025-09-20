@@ -12,6 +12,21 @@
       text-align: center;
       margin: 0;
       padding: 0;
+      display: flex;
+    }
+
+    /* Left column for counters */
+    .left-column {
+      width: 150px;
+      padding: 20px;
+      border-right: 2px solid navy;
+      text-align: left;
+      background: #f7f7f7;
+    }
+
+    .main-content {
+      flex: 1;
+      padding: 20px;
     }
 
     h1 {
@@ -78,7 +93,7 @@
       height: 300px;
       margin: 20px auto;
       background: white;
-      border: 4px double navy;
+      border: 2px double navy;
       border-radius: 10px;
       display: flex;
       flex-direction: column;
@@ -90,212 +105,3 @@
 
     .morpheme {
       font-size: 2rem;
-      font-weight: bold;
-    }
-
-    .meaning {
-      font-size: 0.9rem;
-      font-style: italic;
-      margin-top: 10px;
-      max-width: 90%;
-    }
-
-    .points {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      width: 25px;
-      height: 25px;
-      background: navy;
-      color: white;
-      font-size: 0.7rem;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      border-radius: 3px;
-    }
-
-    .scoreboard {
-      font-size: 1.2rem;
-      margin: 15px;
-    }
-
-    .strikes {
-      margin: 10px;
-      font-size: 1.5rem;
-      color: red;
-    }
-
-    input, button {
-      margin-top: 10px;
-      padding: 8px;
-      font-size: 1rem;
-    }
-
-    .win-message {
-      color: green;
-      font-size: 1.5rem;
-      margin-top: 15px;
-    }
-
-    .lose-message {
-      color: red;
-      font-size: 1.5rem;
-      margin-top: 15px;
-    }
-  </style>
-</head>
-<body>
-  <h1>SayWord Knockout</h1>
-
-  <div class="round-timer">Round Timer: <span id="round-timer">5:00</span></div>
-  <div class="progress-bar"><div id="progress" class="progress"></div></div>
-
-  <!-- Circle Turn Timer -->
-  <div class="circle-timer">
-    <svg width="100" height="100">
-      <circle cx="50" cy="50" r="45"></circle>
-      <circle class="progress-circle" cx="50" cy="50" r="45"
-              stroke-dasharray="282.6"
-              stroke-dashoffset="0"></circle>
-    </svg>
-    <div class="time-label" id="turn-timer">20</div>
-  </div>
-
-  <div class="card" id="morpheme-card">
-    <div class="morpheme" id="morpheme"></div>
-    <div class="meaning" id="meaning"></div>
-    <div class="points" id="points"></div>
-  </div>
-
-  <input type="text" id="word-input" placeholder="Enter a word"/>
-  <button onclick="submitWord()">Submit</button>
-
-  <div class="scoreboard">Score: <span id="score">0</span></div>
-  <div class="strikes" id="strikes"></div>
-  <div id="result-message"></div>
-
-  <script>
-    const morphemes = [
-      { morpheme: "auto", meaning: "self", points: 1 },
-      { morpheme: "bio", meaning: "life", points: 1 },
-      { morpheme: "geo", meaning: "earth", points: 1 },
-      { morpheme: "micro", meaning: "small", points: 1 },
-      { morpheme: "tele", meaning: "far", points: 1 },
-      { morpheme: "therm", meaning: "heat", points: 1 },
-      { morpheme: "vis", meaning: "see", points: 1 },
-      { morpheme: "aud", meaning: "hear", points: 1 },
-      { morpheme: "port", meaning: "carry", points: 1 },
-      { morpheme: "dict", meaning: "say", points: 1 },
-      { morpheme: "struct", meaning: "build", points: 2 },
-      { morpheme: "rupt", meaning: "break", points: 2 },
-      { morpheme: "scrib", meaning: "write", points: 2 },
-      { morpheme: "ject", meaning: "throw", points: 2 },
-      { morpheme: "cred", meaning: "believe", points: 2 },
-      { morpheme: "pend", meaning: "hang", points: 2 },
-      { morpheme: "spec", meaning: "look", points: 2 },
-      { morpheme: "tract", meaning: "pull", points: 2 },
-      { morpheme: "form", meaning: "shape", points: 2 },
-      { morpheme: "graph", meaning: "write", points: 2 }
-      // Extend list up to 80
-    ];
-
-    let usedMorphemes = [];
-    let currentMorpheme = null;
-    let score = 0;
-    let wordsSubmitted = new Set();
-    let strikes = 0;
-
-    // Round timer
-    let roundSeconds = 300;
-    const roundDisplay = document.getElementById("round-timer");
-    const roundInterval = setInterval(() => {
-      roundSeconds--;
-      const m = Math.floor(roundSeconds / 60);
-      const s = roundSeconds % 60;
-      roundDisplay.textContent = `${m}:${s < 10 ? "0"+s : s}`;
-      document.getElementById("progress").style.width = `${(roundSeconds/300)*100}%`;
-      if (roundSeconds <= 0) endGame(false, "⏰ Time's up! You lose.");
-    }, 1000);
-
-    // Turn timer circle
-    let turnSeconds = 20;
-    const turnDisplay = document.getElementById("turn-timer");
-    const circle = document.querySelector(".progress-circle");
-    const circumference = 2 * Math.PI * 45;
-
-    function resetTurnTimer() {
-      turnSeconds = 20;
-      updateCircle();
-    }
-
-    function updateCircle() {
-      turnDisplay.textContent = turnSeconds;
-      const offset = circumference - (turnSeconds/20)*circumference;
-      circle.style.strokeDashoffset = offset;
-    }
-
-    setInterval(() => {
-      if (turnSeconds > 0) {
-        turnSeconds--;
-        updateCircle();
-      } else {
-        newCard();
-        resetTurnTimer();
-      }
-    }, 1000);
-
-    // New morpheme card
-    function newCard() {
-      if (usedMorphemes.length === morphemes.length) usedMorphemes = [];
-      let morpheme;
-      do {
-        morpheme = morphemes[Math.floor(Math.random() * morphemes.length)];
-      } while (usedMorphemes.includes(morpheme));
-      usedMorphemes.push(morpheme);
-      currentMorpheme = morpheme;
-      document.getElementById("morpheme").textContent = morpheme.morpheme;
-      document.getElementById("meaning").textContent = morpheme.meaning;
-      document.getElementById("points").textContent = morpheme.points;
-    }
-
-    // Word submission
-    function submitWord() {
-      const word = document.getElementById("word-input").value.trim().toLowerCase();
-      if (!word) return;
-
-      if (wordsSubmitted.has(word)) {
-        addStrike("Word already used. Invalid.");
-      } else if (currentMorpheme && word.includes(currentMorpheme.morpheme)) {
-        score += currentMorpheme.points;
-        wordsSubmitted.add(word);
-        document.getElementById("score").textContent = score;
-        if (wordsSubmitted.size >= 20) endGame(true, "🎉 You win! 20 correct words!");
-        newCard();
-        resetTurnTimer();
-      } else {
-        addStrike("Invalid word! Must include morpheme.");
-      }
-      document.getElementById("word-input").value = "";
-    }
-
-    // Strikes system
-    function addStrike(msg) {
-      strikes++;
-      document.getElementById("strikes").textContent = "❌".repeat(strikes);
-      if (strikes >= 3) endGame(false, "❌ 3 strikes! You lose.");
-      else alert(msg);
-    }
-
-    function endGame(win, message) {
-      clearInterval(roundInterval);
-      document.getElementById("result-message").textContent = message;
-      document.getElementById("result-message").className = win ? "win-message" : "lose-message";
-    }
-
-    // Start first card
-    newCard();
-    updateCircle();
-  </script>
-</body>
-</html>
