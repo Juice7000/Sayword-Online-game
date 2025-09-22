@@ -21,6 +21,15 @@
       font-size: 12px; display: flex;
       align-items: center; justify-content: center;
     }
+    #morpheme-text {
+      font-weight: bold;   /* <-- makes morpheme bold */
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    #morpheme-meaning {
+      font-style: italic;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -58,67 +67,4 @@
 
     function pickMorpheme() {
       current = morphemes[Math.floor(Math.random() * morphemes.length)];
-      document.getElementById("morpheme-text").textContent = current.morpheme;
-      document.getElementById("morpheme-meaning").textContent = current.meaning;
-      document.getElementById("morpheme-points").textContent = current.points;
-    }
-
-    function updateProgress() {
-      document.getElementById("progress").textContent =
-        `✅ Words: ${words} | ❌ Strikes: ${"X".repeat(strikes)}`;
-    }
-
-    function submitWord() {
-      const input = document.getElementById("word-input").value.toLowerCase();
-      if (input.includes(current.morpheme)) {
-        words++;
-        if (words >= 20) { endGame("You win!"); return; }
-      } else {
-        strikes++;
-        if (strikes >= 3) { endGame("You lose!"); return; }
-      }
-      document.getElementById("word-input").value = "";
-      pickMorpheme();
-      wordTime = 20;
-    }
-
-    function startTimers() {
-      roundInterval = setInterval(() => {
-        roundTime--;
-        document.getElementById("round-timer").textContent = roundTime;
-        if (roundTime <= 0) endGame("Time’s up! You lose!");
-      }, 1000);
-
-      wordInterval = setInterval(() => {
-        wordTime--;
-        document.getElementById("word-timer").textContent = wordTime;
-        if (wordTime <= 0) {
-          strikes++;
-          updateProgress();
-          if (strikes >= 3) endGame("Too many strikes!");
-          else { pickMorpheme(); wordTime = 20; }
-        }
-      }, 1000);
-    }
-
-    function endGame(msg) {
-      clearInterval(roundInterval);
-      clearInterval(wordInterval);
-      alert(msg);
-    }
-
-    function resetGame() {
-      words = 0; strikes = 0;
-      roundTime = 300; wordTime = 20;
-      updateProgress();
-      pickMorpheme();
-      clearInterval(roundInterval);
-      clearInterval(wordInterval);
-      startTimers();
-    }
-
-    // start game
-    resetGame();
-  </script>
-</body>
-</html>
+      documen
